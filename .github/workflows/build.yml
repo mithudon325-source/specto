@@ -1,0 +1,28 @@
+name: Build installer (Windows)
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build plugin
+        run: cmake --build build --config Release --target OctaveSpectrogram_VST3
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+      - name: Make installer
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\installer.iss'
+      - name: Keep a copy on the run page
+        uses: actions/upload-artifact@v4
+        with:
+          name: OctaveSpectrogram-Setup
+          path: installer/Output/OctaveSpectrogram-Setup.exe
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "v1.0.${{ github.run_number }}" installer/Output/OctaveSpectrogram-Setup.exe --title "Octave Spectrogram build ${{ github.run_number }}" --notes "Download OctaveSpectrogram-Setup.exe and run it."
